@@ -1,0 +1,2 @@
+- setup-file:
+    local-name: /home/sis/catkin_ws/install/setup.sh
