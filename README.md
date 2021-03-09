@@ -12,12 +12,14 @@ Usage:
 
 **building docker image**
 
-    source docker/build.sh
+    xavier-nx $ source docker/build.sh
 
 **How to run**
 
-    source xavier-nx_docker_run.sh
+    xavier-nx $ source xavier-nx_docker_run.sh
+    docker $ source environment.sh
     
 **If you want to enter same container**
 
-    source xavier-nx_docker_join.sh
+    xavier-nx $ source xavier-nx_docker_join.sh
+    docker $ source environment.sh
