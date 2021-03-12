@@ -23,3 +23,4 @@ Usage:
 
     xavier-nx $ source xavier-nx_docker_join.sh
     docker $ source environment.sh
+
