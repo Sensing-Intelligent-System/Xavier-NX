@@ -38,5 +38,5 @@ docker run -it \
     --network host \
     --rm \
     --privileged \
-    argnctu/sis:xavier-nx \
+    argsis/sis:xavier-nx \
     bash 
