@@ -2,7 +2,6 @@
 
     <arg name="pkg_name" value="baseline_detection"/>
 
-    <node pkg="$(arg pkg_name)" type="setup.py" name="init_arm_and_camera_node"  output="screen"/>
     <node pkg="$(arg pkg_name)" type="detection.py" name="detection_node" output="screen"/>
     
 </launch>

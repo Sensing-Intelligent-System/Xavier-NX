@@ -1,0 +1,7 @@
+<launch>
+
+    <arg name="pkg_name" value="baseline_detection"/>
+
+    <node pkg="$(arg pkg_name)" type="hsv_color_filter.py" name="hsv_color_filter_node" output="screen"/>
+    
+</launch>

@@ -1,26 +1,23 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 # Imports
 import numpy as np
 import os
-from IPython.display import display
 
 import cv2
 from sensor_msgs.msg import CameraInfo, Image
 from cv_bridge import CvBridge
 
 import torchvision
-# from torchvision.models.detection.faster_rcnn import FastRCNNPredictor
-# from torchvision.models.detection.mask_rcnn import MaskRCNNPredictor
+from torchvision.models.detection.faster_rcnn import FastRCNNPredictor
+from torchvision.models.detection.mask_rcnn import MaskRCNNPredictor
 import torchvision.transforms.functional as Tf
 
 import torch
 import torch.utils.data
-import gdown
 import wget
-
-import matplotlib.patches as patches
-import random
+import rospy
+import copy
 
 class Detection():
     def __init__(self):
@@ -28,11 +25,11 @@ class Detection():
         self.cv_bridge = CvBridge()
 
         self.ycb = [
-            "003_cracker_box.sdf", "004_sugar_box.sdf", "005_tomato_soup_can.sdf",
-            "006_mustard_bottle.sdf", "009_gelatin_box.sdf", "010_potted_meat_can.sdf"
+            "cracker_box", "sugar_box", "tomato_soup_can",
+            "mustard_bottle", "gelatin_box", "potted_meat_can"
         ]
 
-        # self.download_model()
+        self.download_model()
 
         # Subscriber image
         self.image_sub = rospy.Subscriber('/camera/color/image_raw', Image, self.rgb_callback)
@@ -45,49 +42,37 @@ class Detection():
 
         cv_image = self.cv_bridge.imgmsg_to_cv2(data, "bgr8")
 
-        # num_classes = len(self.ycb)+1
-        # model = self.get_instance_segmentation_model(num_classes)
-        # model.load_state_dict(torch.load('clutter_maskrcnn_model.pt'))
-        # model.eval()
+        num_classes = len(self.ycb)+1
+        model = self.get_instance_segmentation_model(num_classes)
+        model.load_state_dict(torch.load('clutter_maskrcnn_model.pt'))
+        model.eval()
 
-        # device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
-        # model.to(device)
+        device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
+        model.to(device)
 
-        # with torch.no_grad():
-        #     prediction = model([Tf.to_tensor(cv_image).to(device)])
+        with torch.no_grad():
+            prediction = model([Tf.to_tensor(cv_image).to(device)])
 
-        # # mask
-        # for i in range(prediction[0]["masks"].shape[0]):
-        #     mask = (255 * np.array(prediction[0]['masks'][i,0].cpu().numpy())).astype('uint8') if i==0 else mask + (255 * np.array(prediction[0]['masks'][i,0].cpu().numpy())).astype('uint8')
+        # mask
+        for i in range(prediction[0]["masks"].shape[0]):
+            mask = (255 * np.array(prediction[0]['masks'][i,0].cpu().numpy())).astype('uint8') if i==0 else mask + (255 * np.array(prediction[0]['masks'][i,0].cpu().numpy())).astype('uint8')
 
-        # self.mask.publish(cv_bridge.cv2_to_imgmsg(mask, encoding="passthrough"))
+        self.mask.publish(self.cv_bridge.cv2_to_imgmsg(mask, encoding="passthrough"))
 
         # object detection
-        # img_np = np.array(cv_image)
-        # plt.figure()
-        # fig, ax = plt.subplots(1, figsize=(12,9))
-        # ax.imshow(img_np)
+        img = cv_image.copy()
 
-        # cmap = plt.get_cmap('tab20b')
-        # colors = [cmap(i) for i in np.linspace(0, 1, 20)]
+        num_instances = prediction[0]['boxes'].shape[0]
+        boxes = prediction[0]['boxes'].cpu().numpy().astype('int16')
+        labels = prediction[0]['labels'].cpu().numpy()
 
-        # num_instances = prediction[0]['boxes'].shape[0]
-        # bbox_colors = random.sample(colors, num_instances)
-        # boxes = prediction[0]['boxes'].cpu().numpy()
-        # labels = prediction[0]['labels'].cpu().numpy()
+        for i in range(num_instances):
+            bb = boxes[i,:]
+            cv2.rectangle(img, (bb[0], bb[1]), (bb[2], bb[3]), (0, 255, 0), 2)
 
-        # for i in range(num_instances):
-        #     color = bbox_colors[i]
-        #     bb = boxes[i,:]
-        #     bbox = patches.Rectangle((bb[0], bb[1]), bb[2]-bb[0], bb[3]-bb[1],
-        #             linewidth=2, edgecolor=color, facecolor='none')
-        #     ax.add_patch(bbox)
-        #     plt.text(bb[0], bb[0], s=self.ycb[labels[i]], 
-        #             color='white', verticalalignment='top',
-        #             bbox={'color': color, 'pad': 0})
-        # plt.axis('off')
+            cv2.putText(img, self.ycb[labels[i]], (bb[0], bb[1]), cv2.FONT_HERSHEY_TRIPLEX,0.5, (0, 255, 255), 1, cv2.LINE_AA)
 
-        self.result.publish(self.cv_bridge.cv2_to_imgmsg(cv_image, "bgr8"))
+        self.result.publish(self.cv_bridge.cv2_to_imgmsg(img, "bgr8"))
 
     
     def download_model(self):
